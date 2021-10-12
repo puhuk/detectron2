@@ -28,7 +28,9 @@ def polygons_to_bitmask(polygons: List[np.ndarray], height: int, width: int) -> 
     Returns:
         ndarray: a bool mask of shape (height, width)
     """
-    assert len(polygons) > 0, "COCOAPI does not support empty polygons"
+    if len(polygons) == 0:
+        # COCOAPI does not support empty polygons
+        return np.zeros((height, width)).astype(np.bool)
     rles = mask_util.frPyObjects(polygons, height, width)
     rle = mask_util.merge(rles)
     return mask_util.decode(rle).astype(np.bool)
@@ -170,7 +172,10 @@ class BitMasks:
         if isinstance(polygon_masks, PolygonMasks):
             polygon_masks = polygon_masks.polygons
         masks = [polygons_to_bitmask(p, height, width) for p in polygon_masks]
-        return BitMasks(torch.stack([torch.from_numpy(x) for x in masks]))
+        if len(masks):
+            return BitMasks(torch.stack([torch.from_numpy(x) for x in masks]))
+        else:
+            return BitMasks(torch.empty(0, height, width, dtype=torch.bool))
 
     @staticmethod
     def from_roi_masks(roi_masks: "ROIMasks", height: int, width: int) -> "BitMasks":
